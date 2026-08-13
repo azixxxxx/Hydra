@@ -94,6 +94,31 @@ if (args.length === 1 && args[0] === '--version') {
     });
     appendFileSync(pidFile, `${process.pid}\n${descendant.pid}\n`);
     setInterval(() => {}, 1000);
+  } else if (task === 'mock:fast-orphan') {
+    const pidFile = process.env.HYDRA_MOCK_PID_FILE;
+    if (pidFile === undefined) {
+      throw new Error('HYDRA_MOCK_PID_FILE is required');
+    }
+    const descendant = spawn(
+      process.execPath,
+      ['-e', 'process.on("SIGTERM", () => {}); setInterval(() => {}, 1000);'],
+      { stdio: 'ignore' },
+    );
+    descendant.unref();
+    appendFileSync(pidFile, `${descendant.pid}\n`);
+    setTimeout(() => {
+      emit({
+        type: 'assistant',
+        message: { model, content: [{ type: 'text', text: 'fast parent result' }] },
+      });
+      emit({
+        type: 'result',
+        subtype: 'success',
+        result: 'fast parent result',
+        session_id: sessionId,
+      });
+      setTimeout(() => process.exit(0), 5);
+    }, 15);
   } else if (task === 'mock:tool-turn-limit') {
     setTimeout(() => emit({
       type: 'assistant',

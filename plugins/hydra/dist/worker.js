@@ -15941,6 +15941,21 @@ function killProcessGroup(child, signal) {
     }
   }
 }
+function processGroupAlive(processGroupId) {
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (error51) {
+    const code = error51.code;
+    if (code === "ESRCH") {
+      return false;
+    }
+    if (code === "EPERM") {
+      return true;
+    }
+    throw error51;
+  }
+}
 async function invoke(callback, ...args) {
   await callback?.(...args);
 }
@@ -16005,11 +16020,15 @@ var ClaudeCliAdapter = class {
     let heartbeat;
     let forceKill;
     let closed = false;
+    let exited = false;
     let acceptedEvents = 0;
     const parser = new StreamJsonParser();
     const accumulator = new ClaudeEventAccumulator();
     const exit = new Promise(
       (resolvePromise, rejectPromise) => {
+        child.once("exit", () => {
+          exited = true;
+        });
         child.once("error", (error51) => {
           closed = true;
           rejectPromise(error51);
@@ -16120,8 +16139,21 @@ var ClaudeCliAdapter = class {
     };
     try {
       const metadataReady = (async () => {
-        const processStartMarker = await this.#processStartMarker(pid);
-        await invoke(callbacks.onProcessGroup, pid, processStartMarker);
+        let processStartMarker;
+        try {
+          processStartMarker = await this.#processStartMarker(pid);
+        } catch (error51) {
+          if (!exited && child.exitCode === null && child.signalCode === null) {
+            throw error51;
+          }
+          if (processGroupAlive(pid)) {
+            killProcessGroup(child, "SIGKILL");
+            throw error51;
+          }
+        }
+        if (processStartMarker !== void 0) {
+          await invoke(callbacks.onProcessGroup, pid, processStartMarker);
+        }
         await heartbeatNow();
       })();
       const streamWork = Promise.all([

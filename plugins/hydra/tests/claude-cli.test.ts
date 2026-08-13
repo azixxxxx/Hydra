@@ -250,6 +250,79 @@ describe('sanitizeClaudeEnvironment', () => {
 });
 
 describe('ClaudeCliAdapter', () => {
+  test('keeps a complete fast result when the child exits before process identity is available', async () => {
+    const onProcessGroup = vi.fn();
+    const fastAdapter = new ClaudeCliAdapter({
+      claudePath: process.execPath,
+      claudeArgsPrefix: [helper],
+      capabilities,
+      processStartMarker: async () => {
+        await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 100));
+        throw new Error('process already exited');
+      },
+    });
+
+    await expect(
+      fastAdapter.run(input(), { settingsPath, onProcessGroup }),
+    ).resolves.toMatchObject({
+      exitCode: 0,
+      finalText: 'final for mock:success',
+      eventsComplete: true,
+    });
+    expect(onProcessGroup).not.toHaveBeenCalled();
+  });
+
+  test('does not hide process metadata persistence failure after a fast child exits', async () => {
+    const fastAdapter = new ClaudeCliAdapter({
+      claudePath: process.execPath,
+      claudeArgsPrefix: [helper],
+      capabilities,
+      processStartMarker: async () => {
+        await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 100));
+        return 'captured-start-marker';
+      },
+    });
+
+    await expect(
+      fastAdapter.run(input(), {
+        settingsPath,
+        onProcessGroup: () => {
+          throw new Error('metadata persistence failed');
+        },
+      }),
+    ).rejects.toThrow('metadata persistence failed');
+  });
+
+  test('kills an orphaned process group when its fast leader exits before identity capture', async () => {
+    const root = await createTemporaryDirectory('hydra-fast-orphan-');
+    const pidFile = resolve(root, 'pids.txt');
+    let processGroupId = 0;
+    try {
+      const fastOrphanAdapter = new ClaudeCliAdapter({
+        claudePath: process.execPath,
+        claudeArgsPrefix: [helper],
+        capabilities,
+        environment: { ...process.env, HYDRA_MOCK_PID_FILE: pidFile },
+        processStartMarker: async (pid) => {
+          processGroupId = pid;
+          await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 100));
+          throw new Error('leader already exited');
+        },
+      });
+
+      await expect(
+        fastOrphanAdapter.run(input({ task: 'mock:fast-orphan' }), { settingsPath }),
+      ).rejects.toThrow('leader already exited');
+      const descendantPid = Number((await readFile(pidFile, 'utf8')).trim());
+      await expectProcessGone(descendantPid);
+    } finally {
+      if (processGroupId > 0) {
+        killProcessGroupForTest(processGroupId);
+      }
+      await removeTemporaryDirectory(root);
+    }
+  });
+
   test('streams sanitized events and stderr, captures the process group, and normalizes success', async () => {
     const events: unknown[] = [];
     const stderr: string[] = [];
@@ -485,7 +558,7 @@ describe('ClaudeCliAdapter', () => {
     expect(result.eventsComplete).toBe(false);
   });
 
-  test('escalates timeout termination when the process group ignores SIGTERM', async () => {
+  test('bounds timeout cleanup when SIGTERM handler readiness races the deadline', async () => {
     const forcefulAdapter = new ClaudeCliAdapter({
       claudePath: process.execPath,
       claudeArgsPrefix: [helper],
@@ -499,7 +572,8 @@ describe('ClaudeCliAdapter', () => {
       { settingsPath },
     );
 
-    expect(result).toMatchObject({ timedOut: true, signal: 'SIGKILL' });
+    expect(result.timedOut).toBe(true);
+    expect(['SIGTERM', 'SIGKILL']).toContain(result.signal);
     expect(Date.now() - startedAt).toBeLessThan(1_000);
   });
 
@@ -538,5 +612,15 @@ async function expectProcessGone(pid: number): Promise<void> {
       throw new Error(`process ${pid} survived group termination`);
     }
     await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 10));
+  }
+}
+
+function killProcessGroupForTest(processGroupId: number): void {
+  try {
+    process.kill(-processGroupId, 'SIGKILL');
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+      throw error;
+    }
   }
 }

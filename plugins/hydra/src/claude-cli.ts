@@ -289,6 +289,22 @@ function killProcessGroup(
   }
 }
 
+function processGroupAlive(processGroupId: number): boolean {
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ESRCH') {
+      return false;
+    }
+    if (code === 'EPERM') {
+      return true;
+    }
+    throw error;
+  }
+}
+
 async function invoke<T extends readonly unknown[]>(
   callback: ((...args: T) => Promise<void> | void) | undefined,
   ...args: T
@@ -364,12 +380,16 @@ export class ClaudeCliAdapter {
     let heartbeat: NodeJS.Timeout | undefined;
     let forceKill: NodeJS.Timeout | undefined;
     let closed = false;
+    let exited = false;
     let acceptedEvents = 0;
     const parser = new StreamJsonParser();
     const accumulator = new ClaudeEventAccumulator();
 
     const exit = new Promise<{ exitCode: number | null; signal: NodeJS.Signals | null }>(
       (resolvePromise, rejectPromise) => {
+        child.once('exit', () => {
+          exited = true;
+        });
         child.once('error', (error) => {
           closed = true;
           rejectPromise(error);
@@ -500,8 +520,21 @@ export class ClaudeCliAdapter {
 
     try {
       const metadataReady = (async (): Promise<void> => {
-        const processStartMarker = await this.#processStartMarker(pid);
-        await invoke(callbacks.onProcessGroup, pid, processStartMarker);
+        let processStartMarker: string | undefined;
+        try {
+          processStartMarker = await this.#processStartMarker(pid);
+        } catch (error) {
+          if (!exited && child.exitCode === null && child.signalCode === null) {
+            throw error;
+          }
+          if (processGroupAlive(pid)) {
+            killProcessGroup(child, 'SIGKILL');
+            throw error;
+          }
+        }
+        if (processStartMarker !== undefined) {
+          await invoke(callbacks.onProcessGroup, pid, processStartMarker);
+        }
         await heartbeatNow();
       })();
       const streamWork = Promise.all([
