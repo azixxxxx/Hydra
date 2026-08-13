@@ -1,0 +1,41 @@
+name: Bug report
+description: Report a reproducible Hydra defect without credentials or private transcripts.
+title: '[bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: Do not include OAuth tokens, API keys, account-usage screenshots, or unsanitized Claude output. Security issues belong in a private advisory.
+  - type: input
+    id: version
+    attributes:
+      label: Hydra version
+      placeholder: 1.0.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: macOS version, architecture, Node.js, Claude Code, and Codex versions.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Sanitized reproduction
+      description: Smallest steps, input shape, typed error code, and expected behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Verification evidence
+      description: Relevant sanitized test output or repository references.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed credentials, account identity, private URLs, and raw transcripts.
+          required: true

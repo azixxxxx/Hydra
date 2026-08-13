@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "hydra": {
+      "command": "node",
+      "args": [
+        "./dist/server.js"
+      ],
+      "cwd": "."
+    }
+  }
+}

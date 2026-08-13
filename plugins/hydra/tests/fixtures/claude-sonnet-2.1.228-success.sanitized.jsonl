@@ -1,0 +1,9 @@
+{"type":"system","subtype":"hook_started","session_id":"88888888-8888-4888-8888-888888888888"}
+{"type":"system","subtype":"hook_response","session_id":"88888888-8888-4888-8888-888888888888"}
+{"type":"system","subtype":"init","session_id":"88888888-8888-4888-8888-888888888888","model":"claude-sonnet-5","permissionMode":"plan","version":"2.1.228","cwd":"~/repository","tools":["StructuredOutput"]}
+{"type":"system","subtype":"thinking_tokens","session_id":"88888888-8888-4888-8888-888888888888"}
+{"type":"assistant","session_id":"88888888-8888-4888-8888-888888888888","message":{"id":"msg_sanitized","model":"claude-sonnet-5","content":[{"type":"thinking"}]}}
+{"type":"assistant","session_id":"88888888-8888-4888-8888-888888888888","message":{"id":"msg_sanitized","model":"claude-sonnet-5","content":[{"type":"tool_use","id":"tool_sanitized","name":"StructuredOutput","input":{"ok":true,"label":"hydra-smoke"}}]}}
+{"type":"rate_limit_event","session_id":"88888888-8888-4888-8888-888888888888"}
+{"type":"user","session_id":"88888888-8888-4888-8888-888888888888","message":{"content":[{"type":"tool_result","tool_use_id":"tool_sanitized"}]}}
+{"type":"result","subtype":"success","is_error":false,"duration_ms":2500,"num_turns":2,"result":"{\"ok\":true,\"label\":\"hydra-smoke\"}","structured_output":{"ok":true,"label":"hydra-smoke"},"session_id":"88888888-8888-4888-8888-888888888888","total_cost_usd":0.048,"terminal_reason":"completed"}

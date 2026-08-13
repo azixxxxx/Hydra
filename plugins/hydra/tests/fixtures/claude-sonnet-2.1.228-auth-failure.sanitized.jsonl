@@ -1,0 +1,5 @@
+{"type":"system","subtype":"init","session_id":"77777777-7777-4777-8777-777777777777","model":"claude-sonnet-5","permissionMode":"plan","version":"2.1.228","cwd":"~/repository","tools":["StructuredOutput"]}
+{"type":"system","subtype":"api_retry","attempt":1,"error":{"status":401,"type":"authentication_failed"}}
+{"type":"system","subtype":"api_retry","attempt":2,"error":{"status":401,"type":"authentication_failed"}}
+{"type":"assistant","message":{"model":"synthetic","content":[{"type":"text","text":"Failed to authenticate. OAuth access token was revoked."}]}}
+{"type":"result","subtype":"error","is_error":true,"result":"Authentication failed","total_cost_usd":0,"num_turns":1,"terminal_reason":"api_error"}

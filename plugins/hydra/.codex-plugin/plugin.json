@@ -1,0 +1,35 @@
+{
+  "name": "hydra",
+  "version": "1.0.0",
+  "description": "Delegate bounded local engineering tasks to the authenticated Claude Code CLI.",
+  "author": {
+    "name": "azixxxxx",
+    "url": "https://github.com/azixxxxx"
+  },
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "claude-code",
+    "local",
+    "engineering"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hydra",
+    "shortDescription": "Run bounded Claude Code jobs from Codex.",
+    "longDescription": "Start, inspect, resume, and cancel bounded Claude Code jobs through a local Claude.ai subscription login.",
+    "developerName": "azixxxxx",
+    "category": "Productivity",
+    "capabilities": [
+      "Local",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Run Hydra preflight for this repository.",
+      "Ask Sonnet to review this change with evidence.",
+      "Ask Opus for an independent architecture review."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

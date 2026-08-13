@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hydra Panel"
+  short_description: "Run bounded multi-model engineering panels"
+  default_prompt: "Use $hydra-panel to run a bounded independent Claude panel for this high-uncertainty decision."

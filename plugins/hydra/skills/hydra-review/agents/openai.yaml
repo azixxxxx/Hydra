@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hydra Review"
+  short_description: "Run evidence-based read-only reviews"
+  default_prompt: "Use $hydra-review to run a read-only Claude review and verify every finding locally."
